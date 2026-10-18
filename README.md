@@ -19,7 +19,7 @@ Sistema bancário simples feito em Python, rodando no terminal. O usuário faz l
 Precisa ter o [Python 3](https://www.python.org/downloads/) instalado.
 
 ```bash
-git clone https://github.com/SEU-USUARIO/banco-multimoedas.git
+git clone https://github.com/deividazevedo292-coder/banco-multimoedas.git
 cd banco-multimoedas
 python3 conversor.py
 ```
