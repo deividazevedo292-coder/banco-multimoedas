@@ -1,34 +1,10 @@
-#banco multimoedas
-
-
+# banco multimoedas
 import sys
 from getpass import getpass
 
-# ===== COTAÇÕES (valor de 1 unidade em reais) =====
-MOEDAS = {
-    "1": {"nome": "Dólar", "simbolo": "US$", "cotacao": 5.00},
-    "2": {"nome": "Euro", "simbolo": "€", "cotacao": 5.67},
-    "3": {"nome": "Libra", "simbolo": "£", "cotacao": 6.67},
-}
+import repositorio as repo
 
 TENTATIVAS_MAXIMAS = 3
-
-
-def criar_conta(senha):
-    """Cria uma conta nova com todos os saldos zerados."""
-    return {
-        "senha": senha,
-        "total_reais": 0.0,
-        "saldos": {codigo: 0.0 for codigo in MOEDAS},
-    }
-
-
-# ===== USUÁRIOS CADASTRADOS =====
-# cada usuário tem a própria senha e os próprios saldos
-USUARIOS = {
-    "cliente": criar_conta("1234"),
-    "admin": criar_conta("senha123"),
-}
 
 
 def ler_valor(mensagem):
@@ -38,46 +14,74 @@ def ler_valor(mensagem):
     except ValueError:
         print("Digite um número válido.")
         return None
-
     if valor <= 0:
         print("O valor deve ser maior que zero.")
         return None
-
     return valor
 
 
-def escolher_moeda(conta=None):
-    """Mostra as moedas (com saldo, se a conta for informada) e retorna o código escolhido."""
-    for codigo, moeda in MOEDAS.items():
-        linha = f"{codigo} - {moeda['nome']}"
-        if conta is not None:
-            linha += f"  (saldo: {moeda['simbolo']} {conta['saldos'][codigo]:.2f})"
-        print(linha)
+def escolher_moeda(usuario_id=None):
+    """Mostra as moedas (com saldo, se informado o usuário) e retorna a escolhida."""
+    if usuario_id is not None:
+        linhas = repo.consultar_saldos(usuario_id)
+    else:
+        linhas = repo.listar_moedas()
 
-    codigo = input("Moeda: ")
-    if codigo not in MOEDAS:
+    opcoes = {}
+    for numero, linha in enumerate(linhas, start=1):
+        codigo, nome, simbolo, extra = linha
+        opcoes[str(numero)] = linha
+        texto = f"{numero} - {nome}"
+        if usuario_id is not None:
+            texto += f" (saldo: {simbolo} {extra:.2f})"
+        print(texto)
+
+    escolha = input("Moeda: ")
+    if escolha not in opcoes:
         print("Moeda inválida.")
         return None
-    return codigo
+    return opcoes[escolha]
+
+
+def cadastrar():
+    print("\n===== NOVA CONTA =====")
+    usuario = input("Escolha um nome de usuário: ").strip().lower()
+    if not usuario:
+        print("O usuário não pode ficar vazio.")
+        return
+    senha = getpass("Escolha uma senha: ")
+    if len(senha) < 4:
+        print("A senha precisa ter pelo menos 4 caracteres.")
+        return
+    if getpass("Confirme a senha: ") != senha:
+        print("As senhas não conferem.")
+        return
+    if repo.criar_usuario(usuario, senha) is None:
+        print("Esse usuário já existe.")
+    else:
+        print(f"Conta criada! Agora é só entrar como '{usuario}'.\n")
 
 
 def fazer_login():
     print("\n===== LOGIN - BANCO MULTIMOEDAS =====")
-    print("(digite 'sair' no usuário para fechar o programa)")
-
-    for tentativa in range(1, TENTATIVAS_MAXIMAS + 1):
+    print("(digite 'novo' para criar uma conta ou 'sair' para fechar)")
+    tentativas = 0
+    while tentativas < TENTATIVAS_MAXIMAS:
         usuario = input("Usuário: ").strip().lower()
-
         if usuario == "sair":
             return None
+        if usuario == "novo":
+            cadastrar()
+            continue
 
         senha = getpass("Senha: ")  # a senha não aparece enquanto digita
-
-        if usuario in USUARIOS and USUARIOS[usuario]["senha"] == senha:
+        usuario_id = repo.autenticar(usuario, senha)
+        if usuario_id is not None:
             print(f"\nLogin realizado! Bem-vindo, {usuario}.")
-            return usuario
+            return usuario, usuario_id
 
-        restantes = TENTATIVAS_MAXIMAS - tentativa
+        tentativas += 1
+        restantes = TENTATIVAS_MAXIMAS - tentativas
         if restantes > 0:
             print(f"Usuário ou senha incorretos. Restam {restantes} tentativa(s).\n")
 
@@ -85,72 +89,73 @@ def fazer_login():
     sys.exit()
 
 
-def depositar(conta):
+def depositar(usuario_id):
     deposito = ler_valor("Valor do depósito em reais: R$ ")
     if deposito is None:
         return
-
     print("\nEscolha a moeda:")
-    codigo = escolher_moeda()
-    if codigo is None:
+    moeda = escolher_moeda()
+    if moeda is None:
         return
-
-    moeda = MOEDAS[codigo]
-    convertido = deposito / moeda["cotacao"]
-    conta["saldos"][codigo] += convertido
-    conta["total_reais"] += deposito
-
-    print(f"Você recebeu {moeda['simbolo']} {convertido:.2f}")
+    codigo, nome, simbolo, cotacao = moeda
+    convertido = repo.depositar(usuario_id, codigo, deposito)
+    print(f"Você recebeu {simbolo} {convertido:.2f}")
     print("Depósito realizado com sucesso!")
 
 
-def consultar(conta):
-    print(f"Total depositado em reais: R$ {conta['total_reais']:.2f}")
-    for codigo, moeda in MOEDAS.items():
-        print(f"Saldo em {moeda['nome'].lower()}: {moeda['simbolo']} {conta['saldos'][codigo]:.2f}")
+def consultar(usuario_id):
+    print(f"Total depositado em reais: R$ {repo.total_depositado(usuario_id):.2f}")
+    for codigo, nome, simbolo, valor in repo.consultar_saldos(usuario_id):
+        print(f"Saldo em {nome.lower()}: {simbolo} {valor:.2f}")
 
 
-def sacar(conta):
+def sacar(usuario_id):
     print("\nDe qual moeda deseja sacar?")
-    codigo = escolher_moeda(conta)
-    if codigo is None:
+    moeda = escolher_moeda(usuario_id)
+    if moeda is None:
         return
-
+    codigo, nome, simbolo, saldo = moeda
     saque = ler_valor("Valor do saque: ")
     if saque is None:
         return
+    if repo.sacar(usuario_id, codigo, saque):
+        print(f"Saque de {simbolo} {saque:.2f} realizado!")
+    else:
+        print(f"Saldo insuficiente. Você tem {simbolo} {saldo:.2f}")
 
-    moeda = MOEDAS[codigo]
-    saldo = conta["saldos"][codigo]
 
-    if saque > saldo:
-        print(f"Saldo insuficiente. Você tem {moeda['simbolo']} {saldo:.2f}")
+def ver_extrato(usuario_id):
+    movimentos = repo.extrato(usuario_id)
+    if not movimentos:
+        print("Nenhuma movimentação ainda.")
         return
+    print("\n===== EXTRATO =====")
+    for feito_em, tipo, moeda, valor_moeda, valor_reais in movimentos:
+        linha = f"{feito_em:%d/%m/%Y %H:%M}  {tipo:<9} {moeda} {valor_moeda:>10.2f}"
+        if valor_reais is not None:
+            linha += f"  (R$ {valor_reais:.2f})"
+        print(linha)
 
-    conta["saldos"][codigo] -= saque
-    print(f"Saque de {moeda['simbolo']} {saque:.2f} realizado! "
-          f"Saldo restante: {moeda['simbolo']} {conta['saldos'][codigo]:.2f}")
 
-
-def menu(usuario):
-    conta = USUARIOS[usuario]
-
+def menu(usuario, usuario_id):
     while True:
         print("\n===== BANCO MULTIMOEDAS =====")
         print(f"Usuário: {usuario}")
         print("1 - Depositar e converter")
         print("2 - Consultar saldos")
         print("3 - Sacar")
+        print("4 - Extrato")
         print("0 - Sair da conta")
-
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
-            depositar(conta)
+            depositar(usuario_id)
         elif opcao == "2":
-            consultar(conta)
+            consultar(usuario_id)
         elif opcao == "3":
-            sacar(conta)
+            sacar(usuario_id)
+        elif opcao == "4":
+            ver_extrato(usuario_id)
         elif opcao == "0":
             print(f"Até logo, {usuario}!")
             break
@@ -159,9 +164,10 @@ def menu(usuario):
 
 
 # ===== INÍCIO DO PROGRAMA =====
-while True:
-    usuario_logado = fazer_login()
-    if usuario_logado is None:
-        print("Obrigado por usar o Banco Multimoedas!")
-        break
-    menu(usuario_logado)
+if __name__ == "__main__":
+    while True:
+        login = fazer_login()
+        if login is None:
+            print("Obrigado por usar o Banco Multimoedas!")
+            break
+        menu(*login)

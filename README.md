@@ -1,41 +1,66 @@
 # 🏦 Banco Multimoedas
 
-Sistema bancário simples feito em Python, rodando no terminal. O usuário faz login, deposita reais e converte para dólar, euro ou libra, consulta os saldos e faz saques.
-
-> Projeto didático, feito para praticar lógica de programação em Python.
+Sistema bancário feito em Python com banco de dados PostgreSQL, rodando no terminal. O usuário cria uma conta, faz login, deposita reais e converte para dólar, euro ou libra, consulta saldos, faz saques e vê o extrato. Os dados ficam salvos no banco, então nada se perde ao fechar o programa.
 
 ## Funcionalidades
 
-- **Login com usuário e senha**: a senha fica oculta enquanto é digitada, e o acesso é bloqueado após 3 tentativas erradas
-- **Contas separadas**: cada usuário tem os próprios saldos
-- **Depósito com conversão**: deposita em reais e converte para Dólar, Euro ou Libra
+- **Cadastro de usuários** direto na tela de login
+- **Login seguro**: senha oculta ao digitar, armazenada com hash (PBKDF2) e bloqueio após 3 tentativas
+- **Depósito com conversão** de reais para Dólar, Euro ou Libra
 - **Consulta de saldos** em todas as moedas
-- **Saque** com verificação de saldo suficiente
-- **Validação de entradas**: aceita valores com vírgula (`10,50`) e não quebra com texto inválido
-- **Troca de usuário**: ao sair da conta, volta para a tela de login
+- **Saque** com verificação de saldo feita pelo próprio banco
+- **Extrato** com histórico de todas as operações
+- **Dados persistentes** no PostgreSQL
+- **Validação de entradas**: aceita vírgula (`10,50`) e não quebra com texto inválido
+
+## Destaques técnicos
+
+- **Transações**: cada operação é "tudo ou nada", então o saldo nunca fica inconsistente
+- **Proteção contra SQL Injection** com consultas parametrizadas
+- **`Decimal` e `NUMERIC`** para valores monetários, evitando erros de arredondamento
+- **Restrições no banco** (`CHECK`, chaves estrangeiras) que impedem saldo negativo e dados inválidos
+- **Separação de responsabilidades**: interface, acesso a dados e conexão em arquivos diferentes
+- **Credenciais fora do código** com variáveis de ambiente (`.env`)
+
+## Estrutura
+
+```
+banco-multimoedas/
+├── conversor.py       # interface: menus e entrada do usuário
+├── repositorio.py     # operações no banco de dados
+├── db.py              # conexão com o PostgreSQL
+├── sql/schema.sql     # criação das tabelas
+├── .env.example       # modelo das variáveis de ambiente
+└── requirements.txt
+```
 
 ## Como rodar
 
-Precisa ter o [Python 3](https://www.python.org/downloads/) instalado.
+Precisa ter **Python 3** e **PostgreSQL** instalados.
 
 ```bash
 git clone https://github.com/deividazevedo292-coder/banco-multimoedas.git
 cd banco-multimoedas
-python3 conversor.py
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+psql -h localhost -U postgres -c "CREATE DATABASE banco_multimoedas;"
+psql -h localhost -U postgres -d banco_multimoedas -f sql/schema.sql
+
+cp .env.example .env    # depois edite o .env com a sua senha do PostgreSQL
+
+python conversor.py
 ```
+
+Na tela de login, digite `novo` para criar uma conta.
 
 > Rode pelo terminal. A senha oculta (`getpass`) pode não funcionar no console de depuração de algumas IDEs.
 
-## Usuários de teste
+## Cotações
 
-| Usuário   | Senha      |
-|-----------|------------|
-| `cliente` | `1234`     |
-| `admin`   | `senha123` |
-
-## Cotações usadas
-
-As cotações são fixas no código (valor de 1 unidade em reais):
+Ficam na tabela `moedas` (valor de 1 unidade em reais):
 
 | Moeda | Cotação |
 |-------|---------|
@@ -45,12 +70,17 @@ As cotações são fixas no código (valor de 1 unidade em reais):
 
 ## Próximos passos
 
-- [ ] Cadastro de novos usuários
-- [ ] Extrato com histórico de operações
-- [ ] Salvar os dados em arquivo (JSON)
+- [x] Cadastro de novos usuários
+- [x] Extrato com histórico de operações
+- [x] Salvar os dados de forma persistente (PostgreSQL)
+- [x] Guardar as senhas com hash
 - [ ] Buscar cotações reais pela internet
-- [ ] Guardar as senhas com hash
+- [ ] Conversão direta entre moedas estrangeiras
+- [ ] Interface web
 
 ## Tecnologias
 
 - Python 3
+- PostgreSQL
+- psycopg2
+- python-dotenv
