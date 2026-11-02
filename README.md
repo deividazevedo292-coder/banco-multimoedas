@@ -1,12 +1,10 @@
 # 🏦 Banco Multimoedas
 
 ![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
-![Status](https://img.shields.io/badge/status-em%20evolução-yellow)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 ![Interface](https://img.shields.io/badge/interface-terminal-black)
 
-Sistema bancário feito em Python que roda no terminal. O usuário faz login, deposita em reais, converte para **dólar, euro ou libra**, consulta os saldos e faz saques — cada conta com os próprios saldos.
-
-> Projeto de estudo criado para praticar lógica de programação, organização do código em funções e validação de entradas do usuário.
+Sistema bancário feito em Python com banco de dados **PostgreSQL**, rodando no terminal. O usuário cria uma conta, faz login, deposita reais e converte para **dólar, euro ou libra**, consulta saldos, faz saques e vê o extrato. Os dados ficam salvos no banco, então nada se perde ao fechar o programa.
 
 ---
 
@@ -14,17 +12,18 @@ Sistema bancário feito em Python que roda no terminal. O usuário faz login, de
 
 ```
 ===== LOGIN - BANCO MULTIMOEDAS =====
-(digite 'sair' no usuário para fechar o programa)
-Usuário: cliente
+(digite 'novo' para criar uma conta ou 'sair' para fechar)
+Usuário: deivid
 Senha:
 
-Login realizado! Bem-vindo, cliente.
+Login realizado! Bem-vindo, deivid.
 
 ===== BANCO MULTIMOEDAS =====
-Usuário: cliente
+Usuário: deivid
 1 - Depositar e converter
 2 - Consultar saldos
 3 - Sacar
+4 - Extrato
 0 - Sair da conta
 Escolha uma opção: 1
 Valor do depósito em reais: R$ 100
@@ -42,57 +41,71 @@ Depósito realizado com sucesso!
 
 ## ✨ Funcionalidades
 
-- **Login com usuário e senha** — a senha fica oculta enquanto é digitada e o acesso é bloqueado após 3 tentativas erradas
-- **Contas separadas** — cada usuário tem os próprios saldos
-- **Depósito com conversão** — deposita em reais e converte para Dólar, Euro ou Libra
+- **Cadastro de usuários** direto na tela de login
+- **Login seguro** — senha oculta ao digitar, armazenada com hash (PBKDF2) e bloqueio após 3 tentativas
+- **Depósito com conversão** de reais para Dólar, Euro ou Libra
 - **Consulta de saldos** em todas as moedas
-- **Saque** com verificação de saldo suficiente
-- **Validação de entradas** — aceita valores com vírgula (`10,50`), recusa valores negativos ou zero e não quebra com texto inválido
-- **Troca de usuário** — ao sair da conta, o programa volta para a tela de login
+- **Saque** com verificação de saldo feita pelo próprio banco
+- **Extrato** com histórico de todas as operações
+- **Dados persistentes** no PostgreSQL
+- **Validação de entradas** — aceita vírgula (`10,50`), recusa valores negativos ou zero e não quebra com texto inválido
+
+---
+
+## 🔒 Destaques técnicos
+
+- **Transações** — cada operação é "tudo ou nada", então o saldo nunca fica inconsistente
+- **Proteção contra SQL Injection** com consultas parametrizadas
+- **`Decimal` e `NUMERIC`** para valores monetários, evitando erros de arredondamento
+- **Restrições no banco** (`CHECK`, chaves estrangeiras) que impedem saldo negativo e dados inválidos
+- **Separação de responsabilidades** — interface, acesso a dados e conexão em arquivos diferentes
+- **Credenciais fora do código** com variáveis de ambiente (`.env`)
+
+---
+
+## 🧩 Estrutura
+
+```
+banco-multimoedas/
+├── conversor.py       # interface: menus e entrada do usuário
+├── repositorio.py     # operações no banco de dados
+├── db.py              # conexão com o PostgreSQL
+├── sql/schema.sql     # criação das tabelas
+├── .env.example       # modelo das variáveis de ambiente
+└── requirements.txt
+```
+
+O banco tem quatro tabelas: `usuarios`, `moedas`, `saldos` e `movimentacoes` (que alimenta o extrato).
 
 ---
 
 ## 🚀 Como rodar
 
-Precisa ter o [Python 3](https://www.python.org/downloads/) instalado. Não usa nenhuma biblioteca externa.
+Precisa ter **Python 3** e **PostgreSQL** instalados.
 
 ```bash
 git clone https://github.com/deividazevedo292-coder/banco-multimoedas.git
 cd banco-multimoedas
-python3 conversor.py
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+psql -h localhost -U postgres -c "CREATE DATABASE banco_multimoedas;"
+psql -h localhost -U postgres -d banco_multimoedas -f sql/schema.sql
+
+cp .env.example .env    # depois edite o .env com a sua senha do PostgreSQL
+
+python conversor.py
 ```
+
+Na tela de login, digite `novo` para criar uma conta.
 
 > 💡 Rode pelo terminal. A senha oculta (`getpass`) pode não funcionar no console de depuração de algumas IDEs.
 
-### Usuários de teste
+### Cotações
 
-| Usuário   | Senha      |
-| --------- | ---------- |
-| `cliente` | `1234`     |
-| `admin`   | `senha123` |
-
----
-
-## 🧩 Como o código está organizado
-
-Todo o programa está em `conversor.py`, dividido em funções com uma responsabilidade cada:
-
-| Função | O que faz |
-| ------ | --------- |
-| `criar_conta()` | Cria uma conta com todos os saldos zerados |
-| `fazer_login()` | Pede usuário e senha, controla as 3 tentativas |
-| `menu()` | Mostra as opções e chama a função escolhida |
-| `depositar()` | Recebe reais e converte para a moeda escolhida |
-| `consultar()` | Mostra o total depositado e os saldos |
-| `sacar()` | Saca de uma moeda, verificando o saldo |
-| `ler_valor()` | Lê e valida números digitados (com `try/except`) |
-| `escolher_moeda()` | Lista as moedas e valida a escolha |
-
-As moedas e os usuários ficam em **dicionários** (`MOEDAS` e `USUARIOS`), então adicionar uma moeda nova é só incluir uma linha no dicionário — o resto do código se adapta sozinho.
-
-### Cotações usadas
-
-As cotações são fixas no código (valor de 1 unidade em reais):
+Ficam na tabela `moedas` (valor de 1 unidade em reais):
 
 | Moeda | Cotação |
 | ----- | ------- |
@@ -104,23 +117,34 @@ As cotações são fixas no código (valor de 1 unidade em reais):
 
 ## 📚 O que pratiquei
 
-- Estruturas de repetição (`while`, `for`) e condicionais
-- Funções com responsabilidade única e reaproveitamento de código
-- Dicionários aninhados para guardar contas e moedas
-- Tratamento de erros com `try/except`
-- Entrada segura de senha com `getpass`
+- Modelagem de banco de dados relacional e SQL (`JOIN`, `UPSERT`, restrições)
+- Integração Python + PostgreSQL com `psycopg2`
+- Segurança básica: hash de senhas, consultas parametrizadas e `.env`
+- Organização do código em camadas (interface × dados)
+- Tratamento de erros com `try/except` e validação de entradas
 
 ---
 
 ## 🛣️ Próximos passos
 
-- [ ] Cadastro de novos usuários
-- [ ] Extrato com histórico de operações
-- [ ] Salvar os dados em arquivo (JSON)
+- [x] Cadastro de novos usuários
+- [x] Extrato com histórico de operações
+- [x] Salvar os dados de forma persistente (PostgreSQL)
+- [x] Guardar as senhas com hash
 - [ ] Buscar cotações reais pela internet (API do Banco Central)
-- [ ] Guardar as senhas com hash
+- [ ] Conversão direta entre moedas estrangeiras
+- [ ] Interface web
 
 > 📊 Veja também: **[Análise de Câmbio](https://github.com/deividazevedo292-coder/analise-cambio)** — projeto complementar que analisa o histórico real das cotações com dados do Banco Central, com [dashboard online](https://dashboard-cambio-deivid.streamlit.app).
+
+---
+
+## 🛠️ Tecnologias
+
+- Python 3
+- PostgreSQL
+- psycopg2
+- python-dotenv
 
 ---
 
