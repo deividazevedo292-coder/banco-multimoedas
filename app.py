@@ -36,5 +36,22 @@ def ver_extrato(usuario_id):
     return jsonify(resultado)
 
 
+@app.route("/saldos/<int:usuario_id>")
+def ver_saldos(usuario_id):
+    linhas = repo.consultar_saldos(usuario_id)
+    saldos = []
+    for codigo, nome, simbolo, valor in linhas:
+        saldos.append({
+            "codigo": codigo,
+            "nome": nome,
+            "simbolo": simbolo,
+            "valor": float(valor),
+        })
+    return jsonify({
+        "total_depositado_reais": float(repo.total_depositado(usuario_id)),
+        "saldos": saldos,
+    })
+
+
 if __name__ == "__main__":
     app.run(debug=True)
