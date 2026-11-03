@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 import repositorio as repo
 
@@ -51,6 +51,44 @@ def ver_saldos(usuario_id):
         "total_depositado_reais": float(repo.total_depositado(usuario_id)),
         "saldos": saldos,
     })
+
+
+def validar_pedido(dados):
+    """Confere se o pedido tem uma moeda que existe e um valor maior que zero.
+    Retorna uma mensagem de erro, ou None se estiver tudo certo."""
+    codigos = [linha[0] for linha in repo.listar_moedas()]
+    if dados.get("moeda") not in codigos:
+        return "Moeda inválida."
+    valor = dados.get("valor")
+    if not isinstance(valor, (int, float)) or valor <= 0:
+        return "O valor deve ser um número maior que zero."
+    return None
+
+
+@app.route("/depositar/<int:usuario_id>", methods=["POST"])
+def depositar(usuario_id):
+    dados = request.get_json(silent=True) or {}
+    erro = validar_pedido(dados)
+    if erro:
+        return jsonify({"erro": erro}), 400
+
+    convertido = repo.depositar(usuario_id, dados["moeda"], dados["valor"])
+    return jsonify({
+        "mensagem": "Depósito realizado com sucesso!",
+        "valor_convertido": float(convertido),
+    })
+
+
+@app.route("/sacar/<int:usuario_id>", methods=["POST"])
+def sacar(usuario_id):
+    dados = request.get_json(silent=True) or {}
+    erro = validar_pedido(dados)
+    if erro:
+        return jsonify({"erro": erro}), 400
+
+    if repo.sacar(usuario_id, dados["moeda"], dados["valor"]):
+        return jsonify({"mensagem": "Saque realizado com sucesso!"})
+    return jsonify({"erro": "Saldo insuficiente."}), 400
 
 
 if __name__ == "__main__":
