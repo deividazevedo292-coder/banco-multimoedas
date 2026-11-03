@@ -1,8 +1,13 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 
 import repositorio as repo
 
 app = Flask(__name__)
+
+
+@app.route("/")
+def inicio():
+    return render_template("index.html")
 
 
 @app.route("/moedas")

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Multimoedas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+            margin: 0;
+        }
+        header {
+            background: #0f3d3e;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        header h1 { margin: 0; }
+        header p { margin: 6px 0 0; opacity: 0.8; }
+        main {
+            max-width: 800px;
+            margin: 24px auto;
+            padding: 0 16px;
+            display: grid;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+        .card h2 { margin-top: 0; font-size: 18px; }
+        .saldos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .saldo {
+            background: #eef6f5;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .saldo strong { display: block; font-size: 22px; margin-top: 4px; }
+        .formulario { display: flex; flex-wrap: wrap; gap: 10px; }
+        select, input, button {
+            padding: 10px;
+            font-size: 15px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        button { border: none; color: white; cursor: pointer; }
+        .depositar { background: #15803d; }
+        .sacar { background: #b91c1c; }
+        .dica { font-size: 13px; color: #6b7280; }
+        #mensagem { font-weight: bold; }
+        .ok { color: #15803d; }
+        .erro { color: #b91c1c; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Banco Multimoedas</h1>
+        <p>Usuário: cliente (id 1)</p>
+    </header>
+
+    <main>
+        <!-- SALDOS -->
+        <section class="card">
+            <h2>Saldos</h2>
+            <p id="total"></p>
+            <div class="saldos" id="saldos"></div>
+        </section>
+
+        <!-- DEPOSITAR E SACAR -->
+        <section class="card">
+            <h2>Depositar ou sacar</h2>
+            <div class="formulario">
+                <select id="moeda"></select>
+                <input type="number" id="valor" placeholder="Valor" step="0.01" min="0.01">
+                <button class="depositar" onclick="enviar('depositar')">Depositar</button>
+                <button class="sacar" onclick="enviar('sacar')">Sacar</button>
+            </div>
+            <p class="dica">No depósito, o valor é em reais. No saque, é na moeda escolhida.</p>
+            <p id="mensagem"></p>
+        </section>
+
+        <!-- EXTRATO -->
+        <section class="card">
+            <h2>Extrato</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Moeda</th>
+                        <th>Valor</th>
+                        <th>Em reais</th>
+                    </tr>
+                </thead>
+                <tbody id="extrato"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        // Por enquanto o usuário é fixo. Quando fizermos o login, isso muda.
+        const USUARIO_ID = 1;
+
+        // Mostra números no formato brasileiro: 1234.5 vira "1.234,50"
+        function formatar(numero) {
+            return numero.toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        }
+
+        // Busca as moedas na API e coloca no <select>
+        async function carregarMoedas() {
+            const resposta = await fetch("/moedas");
+            const moedas = await resposta.json();
+
+            const select = document.getElementById("moeda");
+            for (const moeda of moedas) {
+                const opcao = document.createElement("option");
+                opcao.value = moeda.codigo;
+                opcao.textContent = moeda.nome + " (" + moeda.simbolo + ")";
+                select.appendChild(opcao);
+            }
+        }
+
+        // Busca os saldos na API e mostra na tela
+        async function carregarSaldos() {
+            const resposta = await fetch("/saldos/" + USUARIO_ID);
+            const dados = await resposta.json();
+
+            document.getElementById("total").textContent =
+                "Total depositado: R$ " + formatar(dados.total_depositado_reais);
+
+            let html = "";
+            for (const saldo of dados.saldos) {
+                html += '<div class="saldo">' + saldo.nome +
+                        "<strong>" + saldo.simbolo + " " + formatar(saldo.valor) + "</strong></div>";
+            }
+            document.getElementById("saldos").innerHTML = html;
+        }
+
+        // Busca o extrato na API e monta as linhas da tabela
+        async function carregarExtrato() {
+            const resposta = await fetch("/extrato/" + USUARIO_ID);
+            const movimentos = await resposta.json();
+
+            let html = "";
+            // reverse() mostra o mais recente primeiro
+            for (const mov of movimentos.reverse()) {
+                const tipo = mov.tipo === "deposito" ? "Depósito" : "Saque";
+                const reais = mov.valor_reais === null ? "-" : "R$ " + formatar(mov.valor_reais);
+                html += "<tr><td>" + mov.data + "</td><td>" + tipo + "</td><td>" + mov.moeda +
+                        "</td><td>" + formatar(mov.valor_moeda) + "</td><td>" + reais + "</td></tr>";
+            }
+            if (html === "") {
+                html = '<tr><td colspan="5">Nenhuma movimentação ainda.</td></tr>';
+            }
+            document.getElementById("extrato").innerHTML = html;
+        }
+
+        // Envia um depósito ou saque para a API (acao = "depositar" ou "sacar")
+        async function enviar(acao) {
+            const moeda = document.getElementById("moeda").value;
+            const valor = parseFloat(document.getElementById("valor").value);
+
+            const resposta = await fetch("/" + acao + "/" + USUARIO_ID, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ moeda: moeda, valor: valor }),
+            });
+            const dados = await resposta.json();
+
+            const mensagem = document.getElementById("mensagem");
+            if (resposta.ok) {
+                mensagem.textContent = dados.mensagem;
+                mensagem.className = "ok";
+                document.getElementById("valor").value = "";
+            } else {
+                mensagem.textContent = dados.erro;
+                mensagem.className = "erro";
+            }
+
+            // Atualiza a tela com os dados novos
+            carregarSaldos();
+            carregarExtrato();
+        }
+
+        // Quando a página abre, carrega tudo
+        carregarMoedas();
+        carregarSaldos();
+        carregarExtrato();
+    </script>
+
+</body>
+</html>
