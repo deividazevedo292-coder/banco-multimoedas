@@ -3,32 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro - Banco Multimoedas</title>
+    <title>Criar conta - Multimoedas</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='26' cy='14' r='12' fill='%238c8c8c' stroke='%23b3b3b3' stroke-width='1.5'/%3E%3Ccircle cx='17' cy='23' r='14' fill='%23f5f5f5' stroke='%23000' stroke-width='2'/%3E%3Cpath d='M11 29V18l6 6 6-6v11' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f6f8; color: #1f2937; margin: 0; }
-        header { background: #0f3d3e; color: white; text-align: center; padding: 20px; }
-        header h1 { margin: 0; }
-        .card { background: white; border-radius: 12px; padding: 24px; max-width: 360px;
-                margin: 40px auto; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-        .card h2 { margin-top: 0; }
-        form { display: grid; gap: 12px; }
-        input, button { padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
-        button { background: #15803d; color: white; border: none; cursor: pointer; }
-        .aviso { color: #b91c1c; font-weight: bold; }
+        :root {
+            --preto: #000000;
+            --superficie: #1c1c1c;
+            --superficie-2: #2a2a2a;
+            --linha: #3a3a3a;
+            --texto: #f5f5f5;
+            --suave: #9a9a9a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 32px 20px;
+            font-family: "Sora", system-ui, sans-serif; background: var(--preto); color: var(--texto); line-height: 1.5;
+        }
+        .caixa { width: 100%; max-width: 360px; }
+        .marca { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; margin-bottom: 48px; }
+        .logo { flex: none; display: block; }
+        .simbolos { display: flex; gap: 14px; font-size: 28px; font-weight: 700; margin: -24px 0 40px; }
+        .simbolos span:nth-child(1) { color: #ffffff; }
+        .simbolos span:nth-child(2) { color: #bdbdbd; }
+        .simbolos span:nth-child(3) { color: #8c8c8c; }
+        h1 { font-weight: 300; font-size: 32px; letter-spacing: -0.02em; margin: 0; }
+        .sub { color: var(--suave); margin: 6px 0 32px; font-size: 14px; }
+        form { display: grid; gap: 18px; }
+        label { display: block; font-size: 12px; color: var(--suave); margin-bottom: 6px; }
+        input {
+            width: 100%; padding: 14px; font: inherit; font-size: 15px; color: var(--texto);
+            background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px;
+        }
+        input:focus, button:focus-visible, a:focus-visible { outline: 2px solid #f5f5f5; outline-offset: 2px; }
+        .dica { margin: 6px 0 0; font-size: 12px; color: var(--suave); }
+        button {
+            margin-top: 8px; padding: 15px; border: none; border-radius: 999px; cursor: pointer;
+            font: inherit; font-weight: 600; font-size: 15px; background: #a8a8a8; color: var(--preto);
+        }
+        button:hover { background: #c4c4c4; }
+        .aviso { margin: 0 0 20px; padding: 12px 14px; border-radius: 12px; background: var(--superficie-2); font-size: 14px; }
+        .troca { margin: 28px 0 0; text-align: center; color: var(--suave); font-size: 14px; }
+        .troca a { color: var(--texto); font-weight: 600; }
     </style>
 </head>
 <body>
-    <header><h1>Banco Multimoedas</h1></header>
+    <main class="caixa">
+        <div class="marca"><svg class="logo" width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><circle cx="26" cy="14" r="12" fill="#8c8c8c" stroke="#b3b3b3" stroke-width="1.5"/><circle cx="26" cy="14" r="8" fill="none" stroke="#b3b3b3" stroke-width="1"/><circle cx="17" cy="23" r="14" fill="#f5f5f5" stroke="#000" stroke-width="2"/><path d="M11 29V18l6 6 6-6v11" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>multimoedas</div>
+        <div class="simbolos" aria-hidden="true"><span>US$</span><span>€</span><span>£</span></div>
 
-    <section class="card">
-        <h2>Criar conta</h2>
-        {% for msg in get_flashed_messages() %}<p class="aviso">{{ msg }}</p>{% endfor %}
+        <h1>Criar conta</h1>
+        <p class="sub">Escolha um usuário e uma senha para começar.</p>
+
+        {% for msg in get_flashed_messages() %}<p class="aviso" role="status">{{ msg }}</p>{% endfor %}
+
         <form method="post">
-            <input name="usuario" placeholder="Usuário" maxlength="50" required>
-            <input name="senha" type="password" placeholder="Senha (mín. 6 caracteres)" minlength="6" required>
-            <button type="submit">Cadastrar</button>
+            <div>
+                <label for="usuario">Usuário</label>
+                <input id="usuario" name="usuario" maxlength="50" autocomplete="username" required>
+            </div>
+            <div>
+                <label for="senha">Senha</label>
+                <input id="senha" name="senha" type="password" minlength="6" autocomplete="new-password" required>
+                <p class="dica">Mínimo de 6 caracteres.</p>
+            </div>
+            <button type="submit">Criar conta</button>
         </form>
-        <p>Já tem conta? <a href="/login">Entrar</a></p>
-    </section>
+
+        <p class="troca">Já tem conta? <a href="/login">Entrar</a></p>
+    </main>
 </body>
 </html>
