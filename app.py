@@ -1,11 +1,68 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash
+from functools import wraps
 
 import repositorio as repo
 
 app = Flask(__name__)
+app.secret_key = "banco-multimoedas-chave-secreta-123"
 
+
+def login_obrigatorio(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "usuario_id" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+# ===== LOGIN E CADASTRO =====
+
+@app.route("/cadastro", methods=["GET", "POST"])
+def cadastro():
+    if request.method == "POST":
+        usuario = request.form["usuario"].strip().lower()
+        senha = request.form["senha"]
+
+        novo_id = repo.criar_usuario(usuario, senha)
+        if novo_id is None:
+            flash("Esse usuário já existe.")
+            return redirect(url_for("cadastro"))
+
+        flash("Conta criada! Faça login.")
+        return redirect(url_for("login"))
+
+    return render_template("cadastro.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        usuario = request.form["usuario"].strip().lower()
+        senha = request.form["senha"]
+
+        usuario_id = repo.autenticar(usuario, senha)
+        if usuario_id is None:
+            flash("Usuário ou senha incorretos.")
+            return redirect(url_for("login"))
+
+        session["usuario_id"] = usuario_id
+        session["nome"] = usuario
+        return redirect(url_for("inicio"))
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+# ===== PÁGINAS E API =====
 
 @app.route("/")
+@login_obrigatorio
 def inicio():
     return render_template("index.html")
 
@@ -24,8 +81,10 @@ def moedas():
     return jsonify(resultado)
 
 
-@app.route("/extrato/<int:usuario_id>")
-def ver_extrato(usuario_id):
+@app.route("/extrato")
+@login_obrigatorio
+def ver_extrato():
+    usuario_id = session["usuario_id"]
     movimentos = repo.extrato(usuario_id)
     resultado = []
     for feito_em, tipo, moeda, valor_moeda, valor_reais in movimentos:
@@ -41,8 +100,10 @@ def ver_extrato(usuario_id):
     return jsonify(resultado)
 
 
-@app.route("/saldos/<int:usuario_id>")
-def ver_saldos(usuario_id):
+@app.route("/saldos")
+@login_obrigatorio
+def ver_saldos():
+    usuario_id = session["usuario_id"]
     linhas = repo.consultar_saldos(usuario_id)
     saldos = []
     for codigo, nome, simbolo, valor in linhas:
@@ -70,8 +131,10 @@ def validar_pedido(dados):
     return None
 
 
-@app.route("/depositar/<int:usuario_id>", methods=["POST"])
-def depositar(usuario_id):
+@app.route("/depositar", methods=["POST"])
+@login_obrigatorio
+def depositar():
+    usuario_id = session["usuario_id"]
     dados = request.get_json(silent=True) or {}
     erro = validar_pedido(dados)
     if erro:
@@ -84,8 +147,10 @@ def depositar(usuario_id):
     })
 
 
-@app.route("/sacar/<int:usuario_id>", methods=["POST"])
-def sacar(usuario_id):
+@app.route("/sacar", methods=["POST"])
+@login_obrigatorio
+def sacar():
+    usuario_id = session["usuario_id"]
     dados = request.get_json(silent=True) or {}
     erro = validar_pedido(dados)
     if erro:

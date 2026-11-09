@@ -19,6 +19,7 @@
         }
         header h1 { margin: 0; }
         header p { margin: 6px 0 0; opacity: 0.8; }
+        header a { color: white; font-weight: bold; }
         main {
             max-width: 800px;
             margin: 24px auto;
@@ -72,7 +73,7 @@
 
     <header>
         <h1>Banco Multimoedas</h1>
-        <p>Usuário: cliente (id 1)</p>
+        <p>Olá, {{ session['nome'] }}! · <a href="/logout">Sair</a></p>
     </header>
 
     <main>
@@ -115,8 +116,7 @@
     </main>
 
     <script>
-        // Por enquanto o usuário é fixo. Quando fizermos o login, isso muda.
-        const USUARIO_ID = 1;
+        // O usuário agora vem do login: o servidor sabe quem está logado pela sessão.
 
         // Mostra números no formato brasileiro: 1234.5 vira "1.234,50"
         function formatar(numero) {
@@ -142,7 +142,7 @@
 
         // Busca os saldos na API e mostra na tela
         async function carregarSaldos() {
-            const resposta = await fetch("/saldos/" + USUARIO_ID);
+            const resposta = await fetch("/saldos");
             const dados = await resposta.json();
 
             document.getElementById("total").textContent =
@@ -158,7 +158,7 @@
 
         // Busca o extrato na API e monta as linhas da tabela
         async function carregarExtrato() {
-            const resposta = await fetch("/extrato/" + USUARIO_ID);
+            const resposta = await fetch("/extrato");
             const movimentos = await resposta.json();
 
             let html = "";
@@ -180,7 +180,7 @@
             const moeda = document.getElementById("moeda").value;
             const valor = parseFloat(document.getElementById("valor").value);
 
-            const resposta = await fetch("/" + acao + "/" + USUARIO_ID, {
+            const resposta = await fetch("/" + acao, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ moeda: moeda, valor: valor }),
