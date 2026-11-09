@@ -12,6 +12,12 @@
   <a href="https://banco-multimoedas.onrender.com"><strong>Acessar o site</strong></a>
 </p>
 
+<p align="center">
+  <img src="docs/tela-banco.png" alt="Tela principal do Banco Multimoedas, com o total depositado, as cotações, os atalhos de depositar e sacar e os saldos em dólar, euro e libra" width="480">
+</p>
+
+<p align="center"><sub>Tela principal (valores de exemplo)</sub></p>
+
 ---
 
 ## Sobre o projeto
