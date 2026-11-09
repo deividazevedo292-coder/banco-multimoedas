@@ -1,205 +1,107 @@
-# 🏦 Banco Multimoedas
+<p align="center">
+  <img src="docs/logo.svg" alt="Logo do Multimoedas" width="96">
+</p>
 
-![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
+<h1 align="center">Banco Multimoedas</h1>
 
-Sistema bancário **Full Stack** feito com **Python (Flask)**, **PostgreSQL** e **HTML, CSS e JavaScript**. O usuário deposita reais e converte para **dólar, euro ou libra**, consulta saldos, faz saques e vê o extrato, tudo por uma página web que conversa com uma API própria. Os dados ficam salvos no banco, então nada se perde ao fechar o programa.
+<p align="center">
+  Banco digital Full Stack para guardar reais e converter para dólar, euro e libra.
+</p>
 
-O projeto começou como um programa de terminal (que continua disponível) e evoluiu para a versão web.
-
----
-
-## 🖥️ Demonstração
-
-### Versão web
-
-![Tela do Banco Multimoedas](docs/tela-web.png)
-
-### Versão terminal
-
-```
-===== LOGIN - BANCO MULTIMOEDAS =====
-(digite 'novo' para criar uma conta ou 'sair' para fechar)
-Usuário: deivid
-Senha:
-
-Login realizado! Bem-vindo, deivid.
-
-===== BANCO MULTIMOEDAS =====
-Usuário: deivid
-1 - Depositar e converter
-2 - Consultar saldos
-3 - Sacar
-4 - Extrato
-0 - Sair da conta
-Escolha uma opção: 1
-Valor do depósito em reais: R$ 100
-
-Escolha a moeda:
-1 - Dólar
-2 - Euro
-3 - Libra
-Moeda: 1
-Você recebeu US$ 20.00
-Depósito realizado com sucesso!
-```
+<p align="center">
+  <a href="https://banco-multimoedas.onrender.com"><strong>Acessar o site</strong></a>
+</p>
 
 ---
 
-## ✨ Funcionalidades
+## Sobre o projeto
 
-- **Interface web** com saldos, depósito, saque e extrato, atualizados na hora sem recarregar a página
-- **API REST em Flask** que o front-end consome via `fetch`
-- **Cadastro de usuários** direto na tela de login
-- **Login seguro** — senha oculta ao digitar, armazenada com hash (PBKDF2) e bloqueio após 3 tentativas
-- **Depósito com conversão** de reais para Dólar, Euro ou Libra
-- **Consulta de saldos** em todas as moedas
-- **Saque** com verificação de saldo feita pelo próprio banco
-- **Extrato** com histórico de todas as operações
-- **Dados persistentes** no PostgreSQL
-- **Validação de entradas** — aceita vírgula (`10,50`), recusa valores negativos ou zero e não quebra com texto inválido
+O Banco Multimoedas começou como um conversor de moedas em Python no terminal e evoluiu para uma aplicação web completa. Cada pessoa cria sua conta, faz login e movimenta os próprios saldos em várias moedas, com extrato de tudo o que fez.
 
----
+> O site usa o plano gratuito do Render, então pode levar cerca de 1 minuto para abrir no primeiro acesso.
 
-## 🔒 Destaques técnicos
+## Funcionalidades
 
-- **Transações** — cada operação é "tudo ou nada", então o saldo nunca fica inconsistente
-- **Proteção contra SQL Injection** com consultas parametrizadas
-- **`Decimal` e `NUMERIC`** para valores monetários, evitando erros de arredondamento
-- **Restrições no banco** (`CHECK`, chaves estrangeiras) que impedem saldo negativo e dados inválidos
-- **Separação de responsabilidades** — interface, acesso a dados e conexão em arquivos diferentes
-- **Credenciais fora do código** com variáveis de ambiente (`.env`)
+- Cadastro e login de usuários, com senha protegida por hash
+- Depósito em reais com conversão automática para dólar, euro ou libra
+- Saque na moeda escolhida, com verificação de saldo
+- Saldo de cada moeda e total depositado em reais
+- Extrato com todas as movimentações
+- Prévia da conversão enquanto o valor é digitado
+- Botão para esconder os valores da tela
+- Layout responsivo, que funciona no celular
 
----
+## Tecnologias
 
-## 🔌 API
+| Camada | Tecnologia |
+|---|---|
+| Back-end | Python, Flask |
+| Banco de dados | PostgreSQL (Neon) |
+| Front-end | HTML, CSS, JavaScript |
+| Deploy | Render, com Gunicorn |
 
-| Método | Rota | O que faz |
-| ------ | ---- | --------- |
-| GET | `/` | Página web |
-| GET | `/moedas` | Lista as moedas e cotações |
-| GET | `/saldos/<id>` | Saldo em cada moeda e total depositado |
-| GET | `/extrato/<id>` | Histórico de depósitos e saques |
-| POST | `/depositar/<id>` | Deposita reais e converte (`{"moeda": "EUR", "valor": 100}`) |
-| POST | `/sacar/<id>` | Saca da moeda escolhida (`{"moeda": "EUR", "valor": 10}`) |
+## Destaques técnicos
 
-As rotas POST validam a moeda e o valor e respondem com erro `400` quando algo está errado (moeda inválida, valor negativo ou saldo insuficiente).
+- **Senhas seguras:** as senhas nunca são salvas em texto puro. Cada uma recebe um sal aleatório e é transformada com PBKDF2-SHA256.
+- **Usuário vem da sessão, não da URL:** as rotas da API (`/saldos`, `/extrato`, `/depositar`, `/sacar`) pegam o id de quem está logado na sessão do Flask. Assim, ninguém consegue ver ou mexer na conta de outra pessoa trocando um número no endereço.
+- **Código organizado em camadas:** o `app.py` cuida das rotas, o `repositorio.py` concentra o acesso ao banco e o `db.py` cuida da conexão.
+- **Integridade no banco:** chaves estrangeiras e regras `CHECK` impedem saldo negativo, cotação zerada e tipos de movimentação inválidos.
+- **Configuração por variáveis de ambiente:** a senha do banco e a chave secreta ficam fora do código, então o mesmo projeto roda no computador e na nuvem.
 
----
+## Como rodar no seu computador
 
-## 🧩 Estrutura
-
-```
-banco-multimoedas/
-├── app.py             # API em Flask (back-end web)
-├── templates/
-│   └── index.html     # página web: HTML, CSS e JavaScript
-├── conversor.py       # versão terminal: menus e entrada do usuário
-├── repositorio.py     # operações no banco de dados (usado pelas duas versões)
-├── db.py              # conexão com o PostgreSQL
-├── sql/schema.sql     # criação das tabelas
-├── .env.example       # modelo das variáveis de ambiente
-└── requirements.txt
-```
-
-O banco tem quatro tabelas: `usuarios`, `moedas`, `saldos` e `movimentacoes` (que alimenta o extrato).
-
----
-
-## 🚀 Como rodar
-
-Precisa ter **Python 3** e **PostgreSQL** instalados.
+Você vai precisar de Python 3 e de um PostgreSQL rodando.
 
 ```bash
+# 1. Clone o repositório
 git clone https://github.com/deividazevedo292-coder/banco-multimoedas.git
 cd banco-multimoedas
 
-python3 -m venv .venv
-source .venv/bin/activate
+# 2. Crie e ative um ambiente virtual
+python -m venv .venv
+source .venv/bin/activate   # no Windows: .venv\Scripts\activate
+
+# 3. Instale as dependências
 pip install -r requirements.txt
 
-psql -h localhost -U postgres -c "CREATE DATABASE banco_multimoedas;"
-psql -h localhost -U postgres -d banco_multimoedas -f sql/schema.sql
+# 4. Configure o banco: copie o exemplo e preencha com os seus dados
+cp .env.example .env
 
-cp .env.example .env    # depois edite o .env com a sua senha do PostgreSQL
-```
+# 5. Crie as tabelas rodando o sql/schema.sql no seu PostgreSQL
 
-**Versão web:**
-
-```bash
+# 6. Rode o projeto
 python app.py
 ```
 
-Depois abra **http://127.0.0.1:5000** no navegador.
+Depois, abra `http://127.0.0.1:5000` no navegador.
 
-> Por enquanto a versão web usa a conta de id 1. Crie uma conta pela versão terminal antes de abrir a página. O login pela web é o próximo passo do projeto.
+## Estrutura do projeto
 
-**Versão terminal:**
-
-```bash
-python conversor.py
+```
+banco-multimoedas/
+├── app.py            # rotas da API e das páginas (Flask)
+├── repositorio.py    # funções que conversam com o banco de dados
+├── db.py             # conexão com o PostgreSQL
+├── conversor.py      # versão original, no terminal
+├── sql/
+│   └── schema.sql    # criação das tabelas e moedas iniciais
+├── templates/
+│   ├── index.html    # tela principal do banco
+│   ├── login.html
+│   └── cadastro.html
+└── requirements.txt
 ```
 
-Na tela de login, digite `novo` para criar uma conta.
+## Próximos passos
 
-> 💡 Rode pelo terminal. A senha oculta (`getpass`) pode não funcionar no console de depuração de algumas IDEs.
+- Atualizar as cotações automaticamente pela API do Banco Central
+- Transferência entre contas
+- Testes automatizados
 
-### Cotações
+## Autor
 
-Ficam na tabela `moedas` (valor de 1 unidade em reais):
+**Deivid Azevedo Dantas**, estudante de Análise e Desenvolvimento de Sistemas no Centro Universitário FMU.
 
-| Moeda | Cotação |
-| ----- | ------- |
-| Dólar | R$ 5,00 |
-| Euro  | R$ 5,67 |
-| Libra | R$ 6,67 |
-
----
-
-## 📚 O que pratiquei
-
-- Modelagem de banco de dados relacional e SQL (`JOIN`, `UPSERT`, restrições)
-- Integração Python + PostgreSQL com `psycopg2`
-- Segurança básica: hash de senhas, consultas parametrizadas e `.env`
-- Organização do código em camadas (interface × dados), o que permitiu criar a versão web reaproveitando toda a lógica do banco
-- Criação de uma API REST com Flask (rotas GET e POST, JSON e códigos de status HTTP)
-- Front-end com HTML, CSS e JavaScript consumindo a API com `fetch`
-- Tratamento de erros com `try/except` e validação de entradas
-
----
-
-## 🛣️ Próximos passos
-
-- [x] Cadastro de novos usuários
-- [x] Extrato com histórico de operações
-- [x] Salvar os dados de forma persistente (PostgreSQL)
-- [x] Guardar as senhas com hash
-- [ ] Buscar cotações reais pela internet (API do Banco Central)
-- [ ] Conversão direta entre moedas estrangeiras
-- [x] Interface web
-- [ ] Login e cadastro pela interface web
-
-> 📊 Veja também: **[Análise de Câmbio](https://github.com/deividazevedo292-coder/analise-cambio)** — projeto complementar que analisa o histórico real das cotações com dados do Banco Central, com [dashboard online](https://dashboard-cambio-deivid.streamlit.app).
-
----
-
-## 🛠️ Tecnologias
-
-- Python 3 e Flask
-- PostgreSQL
-- psycopg2
-- python-dotenv
-- HTML, CSS e JavaScript
-
----
-
-## 👤 Autor
-
-**Deivid Azevedo Dantas** — estudante de Análise e Desenvolvimento de Sistemas na FMU
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/deivid-azevedo-4b5709344/)
-[![Portfólio](https://img.shields.io/badge/Portfólio-000000?logo=githubpages&logoColor=white)](https://deividazevedo292-coder.github.io/)
+- Portfólio: [deividazevedo292-coder.github.io](https://deividazevedo292-coder.github.io/)
+- LinkedIn: [Deivid Azevedo](https://www.linkedin.com/in/deivid-azevedo-4b5709344/)
+- GitHub: [deividazevedo292-coder](https://github.com/deividazevedo292-coder)
