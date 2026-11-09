@@ -1,11 +1,11 @@
+import os
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash
 from functools import wraps
 
 import repositorio as repo
 
 app = Flask(__name__)
-app.secret_key = "banco-multimoedas-chave-secreta-123"
-
+app.secret_key = os.getenv("SECRET_KEY", "chave-so-para-desenvolvimento")
 
 def login_obrigatorio(f):
     @wraps(f)
